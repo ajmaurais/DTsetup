@@ -3,6 +3,10 @@
 invalidOptionMessage="is an invalid option! Exiting..."
 format="std"
 
+function usage {
+	echo -e '\nusage: DTsetup [--format {std,subdir}] [-h]\n'
+}
+
 #get arguments
 while ! [[ -z "$1" ]] ; do
 	case $1 in
@@ -10,8 +14,13 @@ while ! [[ -z "$1" ]] ; do
 			shift
 			format="$1"
 		;;
+		'-h' | '--help')
+			usage
+			exit
+		;;
 		*)
 			echo "$1" $invalidOptionMessage
+			usage
 			exit
 		;;
 	esac
