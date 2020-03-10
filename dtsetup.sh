@@ -1,18 +1,18 @@
 #!/bin/bash
 
 invalidOptionMessage="is an invalid option! Exiting..."
-format="std"
+inputFormat="std"
 
 function usage {
-	echo -e '\nusage: DTsetup [--format {std,subdir}] [-h]\n'
+	echo -e '\nusage: DTsetup [--inputFormat {std,subdir}] [-h]\n'
 }
 
 #get arguments
 while ! [[ -z "$1" ]] ; do
 	case $1 in
-		"-f" | "--format")
+		"-i" | "--inputFormat")
 			shift
-			format="$1"
+			inputFormat="$1"
 		;;
 		'-h' | '--help')
 			usage
@@ -28,12 +28,12 @@ while ! [[ -z "$1" ]] ; do
 done
 
 #genearte a folder in parent dir with the name $newDirName and copy all DTA-filter
-#files into $nweDirName using specified format
+#files into $nweDirName using specified inputFormat
 newDirName=$(date +"%y-%m-%d_%H%M%S")_dtarraySetup
 echo "Creating dtarraySetup folder in parent dirrectory..."
 mkdir $newDirName
 echo "Copying DTA filter files to $newDirName..."
-case $format in
+case $inputFormat in
 	"std")
 		#itterate through all dirs one level below parent dir looking for
 		#DTA_filter files
@@ -55,29 +55,16 @@ case $format in
 		done
 	;;
 	"subdir")
-		#itterate through all dirs one level beliw parent dir looking for
-		#DTA filter files
-		for D in * ; do
-			#skip new dir just made
-			if ! [ "${D/dtarraySetup}" = "$D" ] ; then
-				continue;
-			fi
-			if [ -d "$D" ] ; then
-				cd $D
-				#if DTA filter files exists in $D, copy file into a dir in $newDirName
-				#with the same name as $D
-				if [ -f DTASelect-filter.txt ] ; then
-					echo -e "\tAdding $D..."
-					mkdir ../$newDirName/"$D"/
-					cp DTASelect-filter.txt ../$newDirName/"$D"/
-				fi
-				cd ..
-			fi
+        # Find all DTAFilter files one level below current directory.
+		for f in $(find *|grep 'DTASelect-filter.txt$') ; do
+            newBase=$(dirname "$f"| sed 's/\//_/g')
+            cp -v "$f" $newDirName/"$newBase".dtafilter
 		done
 	;;
 	*)
-		echo $format" is not a valid output format! Exiting..."
+		echo $inputFormat" is not a valid input format! Exiting..."
 	;;
 esac
 
 echo Done
+
