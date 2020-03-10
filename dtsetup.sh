@@ -1,18 +1,28 @@
 #!/bin/bash
 
 invalidOptionMessage="is an invalid option! Exiting..."
-inputFormat="std"
+maxDepth=1
+minDepth=1
+newDirName=$(date +"%y-%m-%d_%H%M%S")_dtarraySetup
 
 function usage {
-	echo -e '\nusage: DTsetup [--inputFormat {std,subdir}] [-h]\n'
+	echo -e '\nusage: DTsetup [--output <name>] [--maxdepth <depth>] [-h] [<input_dirs> ...]\n'
 }
 
 #get arguments
 while ! [[ -z "$1" ]] ; do
 	case $1 in
-		"-i" | "--inputFormat")
+        "-o" | "--output")
+            shift
+            newDirName="$1"
+        ;;
+		"-d" | "--maxdepth")
 			shift
-			inputFormat="$1"
+			maxDepth="$1"
+		;;
+		"--mindepth")
+			shift
+			minDepth="$1"
 		;;
 		'-h' | '--help')
 			usage
@@ -36,54 +46,26 @@ done
 inDirs=()
 #if no posArgs were given, use current working dir
 if [ ${#posArgs[@]} -eq 0 ]; then
-    for d in ./* ; do
-        inDirs+=( $d )
-    done
+    filterFiles=($(find $(printf '%s\n' "./" | xargs) -maxdepth $maxDepth -mindepth $minDepth |grep 'DTASelect-filter.txt$'))
 else
-    for ((i=0;i<${#posArgs[@]};++i)); do
-        inDirs+=( ${posArgs[i]} )
-    done
+    filterFiles=($(find $(printf '%s\n' "${posArgs[@]}" | xargs) -maxdepth $maxDepth -mindepth $minDepth |grep 'DTASelect-filter.txt$'))
 fi
 
-#genearte a folder in parent dir with the name $newDirName and copy all DTA-filter
-#files into $nweDirName using specified inputFormat
-newDirName=$(date +"%y-%m-%d_%H%M%S")_dtarraySetup
+# echo "${#filterFiles[@]}"
+# printf '%s\n' "${filterFiles[@]}"
+
+if [ ${#filterFiles[@]} == 0 ] ; then
+    echo -e "No filter files found! Exiting...\n"
+    exit
+fi
+
 echo "Creating dtarraySetup folder in parent dirrectory..."
-mkdir $newDirName
+mkdir -p "$newDirName"
 echo "Copying DTA filter files to $newDirName..."
-case $inputFormat in
-	"std")
-		#itterate through all dirs one level below parent dir looking for
-		#DTA_filter files
-        for D in ${inDirs[@]} ; do
-			#skip new dir just made
-			if ! [ "${D/dtarraySetup}" = "$D" ] ; then
-				continue;
-			fi
-			#copy each DTA filter file into dtarraySetup folder with the name of the dir
-			#that it is currently stored in
-			if [ -d "$D" ] ; then
-				cd $D
-				if [ -f DTASelect-filter.txt ] ; then
-                    base_temp=$(basename "$D")
-					echo -e "\tAdding $base_temp..."
-					cp DTASelect-filter.txt ../$newDirName/"$base_temp".dtafilter
-				fi
-				cd ..
-			fi
-		done
-	;;
-	"subdir")
-        # Find all DTAFilter files one level below current directory.
-		for f in $(printf '%s\n' "${inDirs[@]}" | xargs find|grep 'DTASelect-filter.txt$') ; do
-            newBase=$(dirname "$f"| sed 's/\//_/g')
-            cp -v "$f" $newDirName/"$newBase".dtafilter
-		done
-	;;
-	*)
-		echo $inputFormat" is not a valid input format! Exiting..."
-	;;
-esac
+    for f in ${filterFiles[@]} ; do
+        newBase=$(dirname "$f"| sed 's/^\.\///g' |sed 's/\//_/g')
+        cp -v "$f" $newDirName/"$newBase".dtafilter
+    done
 
 echo Done
 
