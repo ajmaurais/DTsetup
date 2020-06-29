@@ -1,8 +1,8 @@
 #!/bin/bash
 
 invalidOptionMessage="is an invalid option! Exiting..."
-maxDepth=1
-minDepth=1
+maxDepth=2
+minDepth=2
 newDirName=$(date +"%y-%m-%d_%H%M%S")_dtarraySetup
 
 function usage {
